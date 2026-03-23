@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Игра: Кто не знает слово?</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+    button { cursor: pointer; }
+    .hidden { display: none; }
+    .word { font-size: 28px; font-weight: bold; }
+    .traitor { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div id="setup">
+      <h2>Настройка</h2>
+      <input id="players" type="number" placeholder="Игроков" value="5">
+      <input id="traitors" type="number" placeholder="Предателей" value="1">
+      <button onclick="startGame()">Начать</button>
+    </div>
+
+    <div id="game" class="hidden">
+      <h3 id="playerText"></h3>
+      <div id="box" class="word">Нажми кнопку</div>
+      <button onclick="showRole()">Показать</button>
+    </div>
+
+    <div id="end" class="hidden">
+      <h2>Игра окончена</h2>
+      <p id="result"></p>
+      <button onclick="playAgain()">Сыграть ещё раз</button>
+    </div>
+
+  </div>
+
+<script>
+const words = [
+  "Банан","Самолёт","Компьютер","Река","Телефон","Кот","Собака","Пицца","Город","Машина",
+  "Книга","Кофе","Море","Гора","Фильм","Апельсин","Лимон","Арбуз","Шоколад","Мороженое",
+  "Поезд","Метро","Автобус","Такси","Велосипед","Ракета","Планета","Звезда","Луна","Солнце",
+  "Океан","Остров","Пустыня","Лес","Дерево","Цветок","Трава","Дождь","Снег","Ветер",
+  "Огонь","Лёд","Облако","Гроза","Молния","Торт","Суп","Салат","Хлеб","Сыр",
+  "Яблоко","Груша","Персик","Вишня","Клубника","Малина","Черника","Ананас","Манго","Киви",
+  "Курица","Мясо","Рыба","Яйцо","Молоко","Чай","Сок","Вода","Газировка","Печенье",
+  "Стол","Стул","Кровать","Диван","Шкаф","Окно","Дверь","Лампа","Телевизор","Холодильник",
+  "Часы","Очки","Ручка","Карандаш","Тетрадь","Рюкзак","Зеркало","Ковёр","Подушка","Одеяло",
+  "Учитель","Студент","Доктор","Повар","Водитель","Пилот","Полицейский","Пожарный","Актёр","Музыкант",
+
+  "Замок","Башня","Мост","Рынок","Пляж","Порт","Стадион","Школа","Университет","Больница",
+  "Аптека","Кафе","Ресторан","Бар","Магазин","Супермаркет","Библиотека","Кинотеатр","Театр","Музей",
+  "Картина","Скульптура","Фотоаппарат","Камера","Микрофон","Наушники","Колонка","Гитара","Пианино","Барабан",
+  "Ноутбук","Планшет","Монитор","Клавиатура","Мышка","Принтер","Флешка","Интернет","Пароль","Сайт",
+  "Игра","Консоль","Контроллер","Очки VR","Робот","Дрон","Искусственный интеллект","Алгоритм","Программа","Код",
+  "Сахар","Соль","Перец","Мёд","Джем","Соус","Кетчуп","Майонез","Паста","Рис",
+  "Картошка","Морковь","Лук","Чеснок","Огурец","Помидор","Капуста","Брокколи","Шпинат","Кабачок",
+  "Бургер","Суши","Лапша","Пельмени","Блины","Омлет","Стейк","Шашлык","Пирог","Круассан",
+  "Футбол","Баскетбол","Теннис","Хоккей","Волейбол","Бокс","Плавание","Бег","Йога","Фитнес",
+  "Мяч","Ракетка","Шлем","Перчатки","Сапоги","Кроссовки","Куртка","Шапка","Шарф","Перчатки",
+
+  "Герой","Злодей","Принц","Принцесса","Король","Королева","Рыцарь","Маг","Дракон","Эльф",
+  "Гном","Орк","Вампир","Зомби","Призрак","Монстр","Супергерой","Шпион","Агент","Детектив",
+  "Пираты","Корабль","Якорь","Компас","Карта","Сокровище","Остров сокровищ","Бутылка","Парус","Капитан",
+  "Самокат","Скейт","Сани","Лыжи","Сноуборд","Парашют","Лифт","Эскалатор","Трактор","Грузовик",
+  "Бензин","Колесо","Двигатель","Руль","Фара","Тормоз","Сигнал","Дорога","Шоссе","Парковка",
+  "Городок","Деревня","Столица","Район","Улица","Переулок","Площадь","Парк","Сквер","Сад",
+  "Клетка","Зоопарк","Ферма","Сарай","Амбар","Лошадь","Корова","Свинья","Коза","Овца",
+  "Пчела","Муравей","Бабочка","Паук","Жук","Комар","Муха","Стрекоза","Краб","Осьминог",
+  "Акула","Дельфин","Кит","Медуза","Черепаха","Пингвин","Орёл","Сова","Ворон","Попугай",
+  "Лев","Тигр","Медведь","Волк","Лиса","Заяц","Белка","Енот","Кенгуру","Жираф",
+
+  "Число","Математика","Формула","График","Уравнение","Физика","Химия","Биология","История","География",
+  "Экзамен","Контрольная","Домашка","Урок","Лекция","Конспект","Тест","Оценка","Диплом","Курс",
+  "Работа","Офис","Начальник","Зарплата","Проект","Собрание","Клиент","Контракт","Документ","Печать",
+  "Деньги","Карта","Банк","Кредит","Долг","Покупка","Продажа","Реклама","Бренд","Логотип",
+  "Время","Секунда","Минута","Час","День","Неделя","Месяц","Год","Век","Будущее"
+];
+
+let totalPlayers, totalTraitors, word;
+let traitors = [];
+let current = 1;
+let revealed = false;
+
+function randomWord() {
+  return words[Math.floor(Math.random() * words.length)];
+}
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function startGame() {
+  current = 1;
+  revealed = false;
+  traitors = [];
+  totalPlayers = +document.getElementById('players').value;
+  totalTraitors = +document.getElementById('traitors').value;
+
+  if (totalPlayers < 3) return alert('Минимум 3 игрока');
+  if (totalTraitors >= totalPlayers) return alert('Слишком много предателей');
+
+  word = randomWord();
+
+  traitors = shuffle([...Array(totalPlayers).keys()].map(i => i+1)).slice(0, totalTraitors);
+
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+
+  updatePlayer();
+}
+
+function updatePlayer() {
+  document.getElementById('playerText').innerText = 'Игрок ' + current;
+  document.getElementById('box').innerText = 'Нажми кнопку';
+  revealed = false;
+}
+
+function showRole() {
+  if (revealed) return;
+  revealed = true;
+
+  const isTraitor = traitors.includes(current);
+
+  document.getElementById('box').innerHTML = isTraitor
+    ? '<span class="traitor">Ты предатель</span>'
+    : word;
+
+  setTimeout(() => {
+    current++;
+
+    if (current > totalPlayers) {
+      endGame();
+      return;
+    }
+
+    updatePlayer();
+  }, 3000);
+}
+
+function endGame() {
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('end').classList.remove('hidden');
+
+  document.getElementById('result').innerHTML =
+    '<button onclick="showRoundResults()">Результаты раунда</button>' +
+    '<div id="roundResultsBox" class="hidden" style="margin-top: 15px; line-height: 1.8;">' +
+    '<div><strong>Предатели:</strong> ' + traitors.join(', ') + '</div>' +
+    '<div><strong>Слово:</strong> ' + word + '</div>' +
+    '</div>';
+}
+
+function showRoundResults() {
+  document.getElementById('roundResultsBox').classList.remove('hidden');
+}
+
+function playAgain() {
+  current = 1;
+  revealed = false;
+  traitors = [];
+  word = '';
+
+  document.getElementById('end').classList.add('hidden');
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+  document.getElementById('result').innerHTML = '';
+}
+</script>
+
+</body>
+</html>
